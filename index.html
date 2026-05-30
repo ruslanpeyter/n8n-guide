@@ -1,0 +1,961 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Self-Host n8n on Oracle Cloud Free Tier</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;0,700;1,400&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #080c14;
+  --surface: #0e1420;
+  --surface2: #131b2e;
+  --surface3: #18223a;
+  --border: #1c2a42;
+  --border2: #243350;
+  --accent: #4f8ef7;
+  --accent2: #38d9a9;
+  --accent3: #f7934f;
+  --warn: #f7694f;
+  --purple: #a78bfa;
+  --text: #dde4f0;
+  --muted: #5a7299;
+  --muted2: #8099bb;
+  --code-bg: #070b12;
+  --code-border: #192333;
+  --sidebar-w: 280px;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Outfit', sans-serif;
+  font-weight: 300;
+  line-height: 1.75;
+}
+
+/* grid bg */
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background:
+    radial-gradient(ellipse 80% 50% at 20% 10%, rgba(79,142,247,0.06) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 40% at 80% 80%, rgba(56,217,169,0.04) 0%, transparent 60%);
+  pointer-events: none; z-index: 0;
+}
+
+/* ── LAYOUT ── */
+.layout { display: flex; min-height: 100vh; position: relative; z-index: 1; }
+
+/* ── SIDEBAR ── */
+aside {
+  width: var(--sidebar-w);
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  padding: 0 0 2rem;
+}
+
+aside::-webkit-scrollbar { width: 4px; }
+aside::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+.brand {
+  padding: 1.75rem 1.5rem;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 1rem;
+}
+
+.brand-pill {
+  display: inline-flex; align-items: center; gap: 0.5rem;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  padding: 0.3rem 0.7rem;
+  border-radius: 6px;
+  font-weight: 700; font-size: 0.9rem;
+  color: #080c14;
+  margin-bottom: 0.6rem;
+}
+
+.brand p { font-size: 0.7rem; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
+
+.nav-group { padding: 0 0.75rem; margin-bottom: 0.25rem; }
+
+.nav-group-label {
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding: 0.5rem 0.75rem 0.25rem;
+}
+
+.nav-item {
+  display: flex; align-items: center; gap: 0.6rem;
+  padding: 0.4rem 0.75rem;
+  border-radius: 7px;
+  color: var(--muted2);
+  text-decoration: none;
+  font-size: 0.8rem;
+  font-weight: 400;
+  transition: all 0.15s;
+  cursor: pointer;
+  line-height: 1.4;
+}
+
+.nav-item:hover { background: rgba(79,142,247,0.08); color: var(--accent); }
+.nav-item.active { background: rgba(79,142,247,0.12); color: var(--accent); font-weight: 500; }
+.nav-item .ic { font-size: 0.8rem; width: 18px; text-align: center; flex-shrink: 0; }
+
+/* ── MAIN ── */
+main {
+  flex: 1;
+  padding: 3.5rem 4rem;
+  max-width: 860px;
+}
+
+/* ── HERO ── */
+.hero {
+  padding-bottom: 3.5rem;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 4rem;
+}
+
+.hero-eyebrow {
+  display: inline-flex; align-items: center; gap: 0.5rem;
+  background: rgba(56,217,169,0.08);
+  border: 1px solid rgba(56,217,169,0.18);
+  color: var(--accent2);
+  font-size: 0.7rem;
+  font-family: 'JetBrains Mono', monospace;
+  padding: 0.28rem 0.8rem;
+  border-radius: 100px;
+  margin-bottom: 1.5rem;
+}
+
+.pulse { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--accent2); animation: blink 2s ease-in-out infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.25} }
+
+.hero h1 {
+  font-size: 3.2rem;
+  font-weight: 800;
+  line-height: 1.08;
+  letter-spacing: -0.02em;
+  margin-bottom: 1.25rem;
+  background: linear-gradient(140deg, #dde4f0 0%, #7fb0f7 45%, #38d9a9 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
+
+.hero-sub { color: var(--muted2); font-size: 1rem; max-width: 520px; line-height: 1.7; margin-bottom: 2rem; }
+
+.hero-chips { display: flex; gap: 0.6rem; flex-wrap: wrap; }
+
+.chip {
+  display: inline-flex; align-items: center; gap: 0.35rem;
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  border-radius: 6px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.72rem;
+  color: var(--muted2);
+  padding: 0.3rem 0.7rem;
+}
+
+.chip.green { border-color: rgba(56,217,169,0.25); color: var(--accent2); background: rgba(56,217,169,0.06); }
+.chip.blue  { border-color: rgba(79,142,247,0.25); color: var(--accent);  background: rgba(79,142,247,0.06); }
+.chip.orange{ border-color: rgba(247,147,79,0.25); color: var(--accent3); background: rgba(247,147,79,0.06); }
+
+/* ── SECTIONS ── */
+.section { margin-bottom: 4.5rem; }
+
+.sec-head {
+  display: flex; align-items: center; gap: 1rem;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.sec-num {
+  width: 38px; height: 38px;
+  border-radius: 9px;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 800; font-size: 0.85rem;
+  color: #080c14; flex-shrink: 0;
+}
+
+.sec-num.orange { background: linear-gradient(135deg, var(--accent3), #f7c94f); }
+.sec-num.purple { background: linear-gradient(135deg, var(--purple), var(--accent)); }
+
+.sec-head h2 {
+  font-size: 1.45rem; font-weight: 700; letter-spacing: -0.01em;
+}
+
+.section h3 {
+  font-size: 0.95rem; font-weight: 600;
+  color: var(--accent);
+  margin: 1.75rem 0 0.6rem;
+  display: flex; align-items: center; gap: 0.5rem;
+}
+
+.section h3::before { content: ''; display: inline-block; width: 3px; height: 14px; background: var(--accent); border-radius: 2px; }
+
+p.desc { color: var(--muted2); font-size: 0.88rem; margin-bottom: 0.75rem; line-height: 1.7; }
+
+/* ── CODE ── */
+.code-wrap {
+  border-radius: 10px; overflow: hidden;
+  border: 1px solid var(--code-border);
+  margin: 0.9rem 0;
+}
+
+.code-top {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0.45rem 1rem;
+  background: var(--surface2);
+  border-bottom: 1px solid var(--code-border);
+}
+
+.lang-tag {
+  font-size: 0.65rem; font-family: 'JetBrains Mono', monospace;
+  color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase;
+}
+
+.copy-btn {
+  background: none; border: 1px solid var(--border2);
+  color: var(--muted); font-size: 0.65rem;
+  font-family: 'JetBrains Mono', monospace;
+  padding: 0.18rem 0.55rem; border-radius: 4px;
+  cursor: pointer; transition: all 0.15s;
+}
+.copy-btn:hover { border-color: var(--accent); color: var(--accent); }
+.copy-btn.ok { border-color: var(--accent2); color: var(--accent2); }
+
+pre {
+  background: var(--code-bg);
+  padding: 1.1rem 1.2rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.8rem; line-height: 1.8; color: #b8c8e0;
+  overflow-x: auto;
+}
+
+.cm { color: #354d6a; font-style: italic; }
+.kw { color: var(--accent); }
+.st { color: #f7c94f; }
+.pa { color: var(--accent3); }
+.va { color: var(--accent2); }
+
+/* ── CALLOUTS ── */
+.note, .warn, .ok-box {
+  display: flex; gap: 0.8rem;
+  padding: 0.85rem 1.1rem;
+  border-radius: 8px; margin: 1rem 0;
+  font-size: 0.84rem; line-height: 1.65;
+}
+.note { background: rgba(79,142,247,0.07); border: 1px solid rgba(79,142,247,0.18); color: #8fb5f0; }
+.warn { background: rgba(247,105,79,0.07); border: 1px solid rgba(247,105,79,0.2); color: #e8a090; }
+.ok-box { background: rgba(56,217,169,0.07); border: 1px solid rgba(56,217,169,0.18); color: #6ddbb8; }
+.ci { font-size: 1rem; flex-shrink: 0; }
+
+/* ── STEPS ── */
+.steps { list-style: none; margin: 0.5rem 0 1rem; }
+
+.steps li {
+  display: flex; align-items: flex-start; gap: 0.85rem;
+  padding: 0.6rem 0;
+  font-size: 0.86rem; color: var(--muted2);
+  border-bottom: 1px solid rgba(28,42,66,0.6);
+}
+.steps li:last-child { border-bottom: none; }
+
+.sn {
+  width: 22px; height: 22px; border-radius: 50%;
+  border: 1px solid var(--accent); color: var(--accent);
+  font-size: 0.65rem; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; margin-top: 0.15rem;
+}
+
+/* ── TABLE ── */
+.info-tbl {
+  width: 100%; border-collapse: collapse;
+  border-radius: 10px; overflow: hidden;
+  border: 1px solid var(--border);
+  margin: 1rem 0;
+}
+
+.info-tbl th {
+  background: var(--surface2);
+  padding: 0.6rem 1rem;
+  font-size: 0.72rem; font-weight: 600;
+  text-align: left; color: var(--muted);
+  letter-spacing: 0.07em; text-transform: uppercase;
+  border-bottom: 1px solid var(--border);
+}
+
+.info-tbl tr:nth-child(odd) td { background: rgba(19,27,46,0.6); }
+.info-tbl tr:nth-child(even) td { background: var(--surface); }
+
+.info-tbl td {
+  padding: 0.6rem 1rem;
+  font-size: 0.83rem; vertical-align: top;
+}
+
+.info-tbl td:first-child {
+  color: var(--muted2); font-weight: 500;
+  width: 200px; border-right: 1px solid var(--border);
+}
+
+.info-tbl td:last-child {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.78rem; color: var(--accent2);
+}
+
+/* ── DIVIDER ── */
+hr { border: none; border-top: 1px solid var(--border); margin: 3.5rem 0; }
+
+/* ── INLINE CODE ── */
+ic { font-family: 'JetBrains Mono', monospace; font-size: 0.8em; color: var(--accent2); background: rgba(56,217,169,0.08); padding: 0.1em 0.35em; border-radius: 3px; }
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+/* ── RESPONSIVE ── */
+@media(max-width:768px){
+  .layout { display: block; }
+  aside { display: none; }
+  main { padding: 1.5rem; }
+  .hero h1 { font-size: 2.1rem; }
+}
+</style>
+</head>
+<body>
+<div class="layout">
+
+<!-- ── SIDEBAR ── -->
+<aside>
+  <div class="brand">
+    <div class="brand-pill">⚡ n8n</div>
+    <p>Oracle Cloud · Free Tier</p>
+  </div>
+
+  <div class="nav-group">
+    <div class="nav-group-label">Setup</div>
+    <a class="nav-item active" href="#overview"><span class="ic">📋</span> Overview</a>
+    <a class="nav-item" href="#instance"><span class="ic">🖥</span> Create VM Instance</a>
+    <a class="nav-item" href="#firewall"><span class="ic">🔒</span> Open Firewall Ports</a>
+    <a class="nav-item" href="#swap"><span class="ic">💾</span> Add Swap Memory</a>
+    <a class="nav-item" href="#docker"><span class="ic">🐳</span> Install Docker</a>
+    <a class="nav-item" href="#n8n"><span class="ic">⚡</span> Install n8n</a>
+    <a class="nav-item" href="#nginx"><span class="ic">🌐</span> Nginx + HTTPS</a>
+    <a class="nav-item" href="#domain"><span class="ic">🔗</span> Point Your Domain</a>
+  </div>
+
+  <div class="nav-group">
+    <div class="nav-group-label">Maintenance</div>
+    <a class="nav-item" href="#backup"><span class="ic">📦</span> Backup</a>
+    <a class="nav-item" href="#update"><span class="ic">⬆️</span> Update n8n</a>
+    <a class="nav-item" href="#autoupdate"><span class="ic">🤖</span> Auto-Update</a>
+    <a class="nav-item" href="#workflow-backup"><span class="ic">📤</span> Workflow Export</a>
+  </div>
+
+  <div class="nav-group">
+    <div class="nav-group-label">Reference</div>
+    <a class="nav-item" href="#compose"><span class="ic">📄</span> Compose File</a>
+    <a class="nav-item" href="#troubleshoot"><span class="ic">🔧</span> Troubleshooting</a>
+  </div>
+</aside>
+
+<!-- ── MAIN ── -->
+<main>
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="hero-eyebrow"><span class="pulse"></span> complete guide</div>
+    <h1>Self-Host n8n on<br>Oracle Cloud Free Tier</h1>
+    <p class="hero-sub">A full step-by-step guide to running your own n8n automation platform — with Docker, Nginx, SSL, and a custom domain — at zero cost.</p>
+    <div class="hero-chips">
+      <span class="chip green">✓ Always Free</span>
+      <span class="chip blue">Docker + SQLite</span>
+      <span class="chip blue">Nginx + Let's Encrypt</span>
+      <span class="chip orange">Ubuntu · ARM or AMD</span>
+    </div>
+  </div>
+
+  <!-- ── OVERVIEW ── -->
+  <div class="section" id="overview">
+    <div class="sec-head">
+      <div class="sec-num">0</div>
+      <h2>What You'll Build</h2>
+    </div>
+
+    <p class="desc">By the end of this guide you'll have a production-ready n8n instance accessible at your own domain with HTTPS, running free forever on Oracle Cloud.</p>
+
+    <table class="info-tbl">
+      <tr><td>Platform</td><td>Oracle Cloud Always Free (no expiry)</td></tr>
+      <tr><td>VM Shape</td><td>VM.Standard.E2.1.Micro (AMD) or A1.Flex (ARM)</td></tr>
+      <tr><td>OS</td><td>Ubuntu 22.04+</td></tr>
+      <tr><td>Container</td><td>Docker + docker-compose</td></tr>
+      <tr><td>Database</td><td>SQLite (built-in, no extra setup)</td></tr>
+      <tr><td>Reverse Proxy</td><td>Nginx</td></tr>
+      <tr><td>SSL</td><td>Let's Encrypt (auto-renewing, free)</td></tr>
+      <tr><td>Result URL</td><td>https://n8n.yourdomain.com</td></tr>
+    </table>
+
+    <h3>AMD vs ARM — Which to choose?</h3>
+    <table class="info-tbl">
+      <thead><tr><th>Shape</th><th>CPU</th><th>RAM</th><th>Recommendation</th></tr></thead>
+      <tr><td>E2.1.Micro (AMD)</td><td>1/8 OCPU</td><td>1 GB</td><td>Works with swap. Personal use only.</td></tr>
+      <tr><td>A1.Flex (ARM)</td><td>4 OCPU</td><td>24 GB</td><td>Recommended. Much more powerful.</td></tr>
+    </table>
+
+    <div class="note"><span class="ci">💡</span> A1.Flex (ARM) is the better choice — same free tier, dramatically more powerful. Use E2.1.Micro only if A1.Flex is unavailable in your region.</div>
+  </div>
+
+  <hr>
+
+  <!-- ── INSTANCE ── -->
+  <div class="section" id="instance">
+    <div class="sec-head">
+      <div class="sec-num">1</div>
+      <h2>Create a VM Instance</h2>
+    </div>
+
+    <h3>Sign up for Oracle Cloud</h3>
+    <ul class="steps">
+      <li><div class="sn">1</div> Go to <strong>oracle.com/cloud/free</strong> and sign up</li>
+      <li><div class="sn">2</div> Provide a valid credit card — for identity verification only, you won't be charged</li>
+      <li><div class="sn">3</div> Choose your home region — it cannot be changed later</li>
+    </ul>
+
+    <h3>Create the VM</h3>
+    <ul class="steps">
+      <li><div class="sn">1</div> Go to <strong>Compute → Instances → Create Instance</strong></li>
+      <li><div class="sn">2</div> Enter a name (e.g. <ic>n8n-server</ic>)</li>
+      <li><div class="sn">3</div> Under Shape, click <strong>Change Shape</strong> → select <strong>VM.Standard.A1.Flex</strong> (ARM) → set 4 OCPUs and 24 GB RAM</li>
+      <li><div class="sn">4</div> Under Image, select <strong>Ubuntu 22.04</strong></li>
+      <li><div class="sn">5</div> Under SSH Keys, paste your public key or let Oracle generate one</li>
+      <li><div class="sn">6</div> Click <strong>Create</strong></li>
+    </ul>
+
+    <div class="note"><span class="ci">💡</span> Generate an SSH key pair with: <ic>ssh-keygen -t ed25519 -C "n8n-oracle"</ic> — then paste the contents of <ic>~/.ssh/id_ed25519.pub</ic> into the SSH key field.</div>
+
+    <h3>Connect via SSH</h3>
+    <div class="code-wrap">
+      <div class="code-top"><span class="lang-tag">bash</span><button class="copy-btn" onclick="cp(this)">copy</button></div>
+      <pre>ssh -i ~/.ssh/id_ed25519 ubuntu@YOUR_PUBLIC_IP</pre>
+    </div>
+  </div>
+
+  <hr>
+
+  <!-- ── FIREWALL ── -->
+  <div class="section" id="firewall">
+    <div class="sec-head">
+      <div class="sec-num">2</div>
+      <h2>Open Firewall Ports</h2>
+    </div>
+
+    <p class="desc">Oracle Cloud has <strong>two</strong> firewall layers — both must be configured. This is the most common reason n8n is unreachable after setup.</p>
+
+    <h3>Layer 1 — Oracle Cloud Security List</h3>
+    <ul class="steps">
+      <li><div class="sn">1</div> Go to <strong>Networking → Virtual Cloud Networks → Your VCN</strong></li>
+      <li><div class="sn">2</div> Click <strong>Security Lists → Default Security List → Add Ingress Rules</strong></li>
+      <li><div class="sn">3</div> Add three rules — one for each port below:</li>
+    </ul>
+
+    <table class="info-tbl">
+      <thead><tr><th>Source CIDR</th><th>Protocol</th><th>Port</th><th>Purpose</th></tr></thead>
+      <tr><td>0.0.0.0/0</td><td>TCP</td><td>80</td><td>HTTP (needed for SSL cert)</td></tr>
+      <tr><td>0.0.0.0/0</td><td>TCP</td><td>443</td><td>HTTPS</td></tr>
+      <tr><td>0.0.0.0/0</td><td>TCP</td><td>5678</td><td>n8n direct access (optional)</td></tr>
+    </table>
+
+    <h3>Layer 2 — OS Firewall (Ubuntu)</h3>
+    <div class="code-wrap">
+      <div class="code-top"><span class="lang-tag">bash</span><button class="copy-btn" onclick="cp(this)">copy</button></div>
+      <pre>sudo ufw allow 80/tcp
+sudo ufw allow 443/tcp
+sudo ufw allow 5678/tcp
+sudo ufw enable
+sudo ufw status</pre>
+    </div>
+
+    <div class="warn"><span class="ci">⚠️</span> <strong>Ubuntu does not use firewall-cmd</strong> — that's for Oracle Linux / CentOS. Use <ic>ufw</ic> on Ubuntu.</div>
+  </div>
+
+  <hr>
+
+  <!-- ── SWAP ── -->
+  <div class="section" id="swap">
+    <div class="sec-head">
+      <div class="sec-num">3</div>
+      <h2>Add Swap Memory</h2>
+    </div>
+
+    <p class="desc">Required if you're on the 1 GB AMD instance (E2.1.Micro). Skip if you're on ARM A1.Flex with 24 GB.</p>
+
+    <div class="code-wrap">
+      <div class="code-top"><span class="lang-tag">bash</span><button class="copy-btn" onclick="cp(this)">copy</button></div>
+      <pre><span class="cm"># Create 2GB swap file</span>
+sudo fallocate -l 2G /swapfile
+sudo chmod 600 /swapfile
+sudo mkswap /swapfile
+sudo swapon /swapfile
+
+<span class="cm"># Make permanent across reboots</span>
+echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+
+<span class="cm"># Tune swappiness (use RAM first)</span>
+echo 'vm.swappiness=10' | sudo tee -a /etc/sysctl.conf
+sudo sysctl -p
+
+<span class="cm"># Verify</span>
+free -h</pre>
+    </div>
+  </div>
+
+  <hr>
+
+  <!-- ── DOCKER ── -->
+  <div class="section" id="docker">
+    <div class="sec-head">
+      <div class="sec-num">4</div>
+      <h2>Install Docker</h2>
+    </div>
+
+    <div class="code-wrap">
+      <div class="code-top"><span class="lang-tag">bash</span><button class="copy-btn" onclick="cp(this)">copy</button></div>
+      <pre>sudo apt update
+sudo apt install -y docker.io docker-compose
+sudo usermod -aG docker $USER
+newgrp docker
+
+<span class="cm"># Verify</span>
+docker --version</pre>
+    </div>
+  </div>
+
+  <hr>
+
+  <!-- ── N8N ── -->
+  <div class="section" id="n8n">
+    <div class="sec-head">
+      <div class="sec-num">5</div>
+      <h2>Install n8n</h2>
+    </div>
+
+    <h3>Step 1 — Generate encryption key</h3>
+    <p class="desc">This key encrypts your saved credentials. Save it somewhere safe — losing it means losing access to all stored credentials.</p>
+    <div class="code-wrap">
+      <div class="code-top"><span class="lang-tag">bash</span><button class="copy-btn" onclick="cp(this)">copy</button></div>
+      <pre>head /dev/urandom | tr -dc A-Za-z0-9_ | head -c 32 ; echo ''</pre>
+    </div>
+
+    <div class="warn"><span class="ci">⚠️</span> Copy the output and save it in a password manager before proceeding.</div>
+
+    <h3>Step 2 — Create the docker-compose file</h3>
+    <div class="code-wrap">
+      <div class="code-top"><span class="lang-tag">bash</span><button class="copy-btn" onclick="cp(this)">copy</button></div>
+      <pre>mkdir ~/n8n && cd ~/n8n
+
+cat > docker-compose.yml << 'EOF'
+services:
+  n8n:
+    image: n8nio/n8n
+    restart: always
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_ENCRYPTION_KEY=YOUR_GENERATED_KEY
+      - WEBHOOK_URL=http://YOUR_PUBLIC_IP:5678
+      - GENERIC_TIMEZONE=Europe/Kiev
+    volumes:
+      - n8n_data:/home/node/.n8n
+
+volumes:
+  n8n_data:
+EOF</pre>
+    </div>
+
+    <h3>Step 3 — Start n8n</h3>
+    <div class="code-wrap">
+      <div class="code-top"><span class="lang-tag">bash</span><button class="copy-btn" onclick="cp(this)">copy</button></div>
+      <pre>docker compose up -d
+
+<span class="cm"># Watch logs until you see "Editor is now accessible"</span>
+docker compose logs -f</pre>
+    </div>
+
+    <div class="ok-box"><span class="ci">✅</span> Once you see <ic>Editor is now accessible via: http://YOUR_IP:5678</ic> — open that URL in your browser and create your admin account.</div>
+  </div>
+
+  <hr>
+
+  <!-- ── NGINX ── -->
+  <div class="section" id="nginx">
+    <div class="sec-head">
+      <div class="sec-num">6</div>
+      <h2>Nginx + HTTPS (SSL)</h2>
+    </div>
+
+    <p class="desc">This gives you <ic>https://n8n.yourdomain.com</ic> instead of <ic>http://IP:5678</ic>. Required for webhooks to work with most external services.</p>
+
+    <h3>Install Nginx and Certbot</h3>
+    <div class="code-wrap">
+      <div class="code-top"><span class="lang-tag">bash</span><button class="copy-btn" onclick="cp(this)">copy</button></div>
+      <pre>sudo apt install nginx certbot python3-certbot-nginx -y
+sudo systemctl start nginx
+sudo systemctl enable nginx</pre>
+    </div>
+
+    <h3>Create Nginx config for n8n</h3>
+    <div class="code-wrap">
+      <div class="code-top"><span class="lang-tag">bash</span><button class="copy-btn" onclick="cp(this)">copy</button></div>
+      <pre>cat > /etc/nginx/sites-available/n8n << 'EOF'
+server {
+    listen 80;
+    server_name n8n.yourdomain.com;
+
+    location / {
+        proxy_pass http://localhost:5678;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+        chunked_transfer_encoding on;
+        proxy_buffering off;
+        proxy_read_timeout 3600s;
+    }
+}
+EOF
+
+sudo ln -s /etc/nginx/sites-available/n8n /etc/nginx/sites-enabled/
+sudo nginx -t
+sudo systemctl reload nginx</pre>
+    </div>
+
+    <h3>Get SSL certificate</h3>
+    <div class="code-wrap">
+      <div class="code-top"><span class="lang-tag">bash</span><button class="copy-btn" onclick="cp(this)">copy</button></div>
+      <pre>sudo certbot --nginx -d n8n.yourdomain.com</pre>
+    </div>
+
+    <div class="note"><span class="ci">💡</span> Certbot will ask for your email, agree to terms, then automatically configure HTTPS and set up auto-renewal. Certificates renew every 90 days automatically.</div>
+
+    <h3>Update docker-compose.yml for HTTPS</h3>
+    <div class="code-wrap">
+      <div class="code-top"><span class="lang-tag">bash</span><button class="copy-btn" onclick="cp(this)">copy</button></div>
+      <pre>cat > ~/n8n/docker-compose.yml << 'EOF'
+services:
+  n8n:
+    image: n8nio/n8n
+    restart: always
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_ENCRYPTION_KEY=YOUR_KEY_HERE
+      - WEBHOOK_URL=https://n8n.yourdomain.com
+      - N8N_HOST=n8n.yourdomain.com
+      - N8N_PROTOCOL=https
+      - GENERIC_TIMEZONE=Europe/Kiev
+    volumes:
+      - n8n_data:/home/node/.n8n
+
+volumes:
+  n8n_data:
+EOF
+
+cd ~/n8n && docker compose down && docker compose up -d</pre>
+    </div>
+  </div>
+
+  <hr>
+
+  <!-- ── DOMAIN ── -->
+  <div class="section" id="domain">
+    <div class="sec-head">
+      <div class="sec-num">7</div>
+      <h2>Point Your Domain</h2>
+    </div>
+
+    <p class="desc">Add a DNS A record at your domain registrar pointing to your Oracle instance IP.</p>
+
+    <table class="info-tbl">
+      <thead><tr><th>Field</th><th>Value</th></tr></thead>
+      <tr><td>Type</td><td>A</td></tr>
+      <tr><td>Name / Host</td><td>n8n</td></tr>
+      <tr><td>Value / Target</td><td>YOUR_ORACLE_PUBLIC_IP</td></tr>
+      <tr><td>TTL</td><td>300 (5 minutes)</td></tr>
+    </table>
+
+    <div class="note"><span class="ci">💡</span> TTL 300 means DNS changes propagate in ~5 minutes. Once you confirm everything works, you can raise it to 3600 (1 hour).</div>
+
+    <h3>Verify DNS propagation</h3>
+    <div class="code-wrap">
+      <div class="code-top"><span class="lang-tag">bash</span><button class="copy-btn" onclick="cp(this)">copy</button></div>
+      <pre>ping n8n.yourdomain.com
+<span class="cm"># Should return your Oracle IP</span></pre>
+    </div>
+  </div>
+
+  <hr>
+
+  <!-- ── BACKUP ── -->
+  <div class="section" id="backup">
+    <div class="sec-head">
+      <div class="sec-num orange">8</div>
+      <h2>Backup</h2>
+    </div>
+
+    <h3>Manual backup</h3>
+    <div class="code-wrap">
+      <div class="code-top"><span class="lang-tag">bash</span><button class="copy-btn" onclick="cp(this)">copy</button></div>
+      <pre>docker cp n8n-n8n-1:/home/node/.n8n/database.sqlite \
+  ~/n8n-backup-$(date +%Y%m%d).sqlite
+
+<span class="cm"># Verify</span>
+ls -lh ~/n8n-backup*.sqlite</pre>
+    </div>
+
+    <h3>Automatic daily backup (cron)</h3>
+    <div class="code-wrap">
+      <div class="code-top"><span class="lang-tag">bash</span><button class="copy-btn" onclick="cp(this)">copy</button></div>
+      <pre>crontab - << 'EOF'
+0 2 * * * docker cp n8n-n8n-1:/home/node/.n8n/database.sqlite /home/ubuntu/n8n-backup-$(date +\%Y\%m\%d).sqlite
+EOF</pre>
+    </div>
+
+    <h3>Download to local machine (SCP)</h3>
+    <div class="code-wrap">
+      <div class="code-top"><span class="lang-tag">bash</span><button class="copy-btn" onclick="cp(this)">copy</button></div>
+      <pre>scp -i ~/.ssh/id_ed25519 ubuntu@YOUR_IP:~/n8n-backup-*.sqlite ~/Desktop/</pre>
+    </div>
+
+    <div class="warn"><span class="ci">⚠️</span> Always back up before updating or rebooting. The SQLite file contains everything — workflows, credentials, executions, users.</div>
+  </div>
+
+  <hr>
+
+  <!-- ── UPDATE ── -->
+  <div class="section" id="update">
+    <div class="sec-head">
+      <div class="sec-num orange">9</div>
+      <h2>Update n8n (Correct Sequence)</h2>
+    </div>
+
+    <p class="desc">Always follow this exact sequence. Skipping <ic>docker compose down</ic> causes a <ic>port already allocated</ic> error because the old container keeps holding port 5678.</p>
+
+    <div class="code-wrap">
+      <div class="code-top"><span class="lang-tag">bash</span><button class="copy-btn" onclick="cp(this)">copy</button></div>
+      <pre><span class="cm"># 1. Backup first</span>
+docker cp n8n-n8n-1:/home/node/.n8n/database.sqlite ~/n8n-backup-$(date +%Y%m%d).sqlite
+
+<span class="cm"># 2. Pull latest image</span>
+cd ~/n8n
+docker compose pull
+
+<span class="cm"># 3. Stop old container</span>
+docker compose down
+
+<span class="cm"># 4. Start with new image</span>
+docker compose up -d
+
+<span class="cm"># 5. Clean up old images (after new one is running)</span>
+docker image prune -f
+
+<span class="cm"># 6. Verify</span>
+docker compose logs -f | grep Version</pre>
+    </div>
+  </div>
+
+  <hr>
+
+  <!-- ── AUTO UPDATE ── -->
+  <div class="section" id="autoupdate">
+    <div class="sec-head">
+      <div class="sec-num orange">10</div>
+      <h2>Auto-Update Script</h2>
+    </div>
+
+    <h3>Create the script</h3>
+    <div class="code-wrap">
+      <div class="code-top"><span class="lang-tag">bash</span><button class="copy-btn" onclick="cp(this)">copy</button></div>
+      <pre>cat > ~/n8n/update.sh << 'EOF'
+#!/bin/bash
+docker cp n8n-n8n-1:/home/node/.n8n/database.sqlite \
+  /home/ubuntu/n8n-backup-$(date +%Y%m%d).sqlite
+cd /home/ubuntu/n8n
+docker compose pull
+docker compose down
+docker compose up -d
+docker image prune -f
+ls -t /home/ubuntu/n8n-backup-*.sqlite | tail -n +8 | xargs rm -f
+EOF
+
+chmod +x ~/n8n/update.sh</pre>
+    </div>
+
+    <h3>Schedule with cron (every Sunday 3:00 AM)</h3>
+    <div class="code-wrap">
+      <div class="code-top"><span class="lang-tag">bash</span><button class="copy-btn" onclick="cp(this)">copy</button></div>
+      <pre>crontab - << 'EOF'
+0 3 * * 0 /home/ubuntu/n8n/update.sh >> /home/ubuntu/n8n-update.log 2>&1
+EOF</pre>
+    </div>
+
+    <h3>Check update log</h3>
+    <div class="code-wrap">
+      <div class="code-top"><span class="lang-tag">bash</span><button class="copy-btn" onclick="cp(this)">copy</button></div>
+      <pre>cat ~/n8n-update.log</pre>
+    </div>
+  </div>
+
+  <hr>
+
+  <!-- ── WORKFLOW BACKUP ── -->
+  <div class="section" id="workflow-backup">
+    <div class="sec-head">
+      <div class="sec-num orange">11</div>
+      <h2>Workflow Export (JSON)</h2>
+    </div>
+
+    <p class="desc">Export workflows as JSON for portability — useful for sharing, version control, or restoring to a new instance.</p>
+
+    <h3>Export all workflows</h3>
+    <ul class="steps">
+      <li><div class="sn">1</div> Open your n8n instance in the browser</li>
+      <li><div class="sn">2</div> Go to <strong>Settings → Import/Export</strong></li>
+      <li><div class="sn">3</div> Click <strong>Export all workflows</strong> — downloads a <ic>.json</ic> file</li>
+      <li><div class="sn">4</div> Store it in Google Drive, GitHub, or locally</li>
+    </ul>
+
+    <table class="info-tbl">
+      <thead><tr><th>Backup type</th><th>Contains</th></tr></thead>
+      <tr><td>SQLite file</td><td>Everything: workflows, credentials, executions, users, settings</td></tr>
+      <tr><td>JSON export</td><td>Workflows only — no credentials or execution history</td></tr>
+    </table>
+
+    <div class="warn"><span class="ci">⚠️</span> JSON export does NOT include credentials — you'll need to re-enter API keys if restoring to a fresh instance.</div>
+  </div>
+
+  <hr>
+
+  <!-- ── COMPOSE ── -->
+  <div class="section" id="compose">
+    <div class="sec-head">
+      <div class="sec-num purple">12</div>
+      <h2>docker-compose.yml Reference</h2>
+    </div>
+
+    <div class="code-wrap">
+      <div class="code-top"><span class="lang-tag">yaml</span><button class="copy-btn" onclick="cp(this)">copy</button></div>
+      <pre>services:
+  n8n:
+    image: n8nio/n8n
+    restart: always
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_ENCRYPTION_KEY=YOUR_KEY_HERE
+      - WEBHOOK_URL=https://n8n.yourdomain.com
+      - N8N_HOST=n8n.yourdomain.com
+      - N8N_PROTOCOL=https
+      - GENERIC_TIMEZONE=Europe/Kiev
+    volumes:
+      - n8n_data:/home/node/.n8n
+
+volumes:
+  n8n_data:</pre>
+    </div>
+
+    <h3>Edit without nano</h3>
+    <div class="code-wrap">
+      <div class="code-top"><span class="lang-tag">bash</span><button class="copy-btn" onclick="cp(this)">copy</button></div>
+      <pre><span class="cm"># Overwrite entire file</span>
+cat > ~/n8n/docker-compose.yml << 'EOF'
+# paste content here
+EOF
+
+<span class="cm"># Replace a single value</span>
+sed -i 's|WEBHOOK_URL=.*|WEBHOOK_URL=https://n8n.yourdomain.com|' ~/n8n/docker-compose.yml</pre>
+    </div>
+  </div>
+
+  <hr>
+
+  <!-- ── TROUBLESHOOT ── -->
+  <div class="section" id="troubleshoot">
+    <div class="sec-head">
+      <div class="sec-num purple">13</div>
+      <h2>Troubleshooting</h2>
+    </div>
+
+    <table class="info-tbl">
+      <thead><tr><th>Problem</th><th>Fix</th></tr></thead>
+      <tr><td>n8n not accessible</td><td>Check docker ps + both Oracle Security List AND ufw (port 80/443/5678)</td></tr>
+      <tr><td>Port already allocated</td><td>docker stop $(docker ps -q) && docker rm $(docker ps -aq), then docker compose up -d</td></tr>
+      <tr><td>Out of memory</td><td>free -h to check. If swap inactive: sudo swapon /swapfile</td></tr>
+      <tr><td>Nginx not working</td><td>sudo nginx -t then sudo systemctl restart nginx</td></tr>
+      <tr><td>SSL expired</td><td>sudo certbot renew</td></tr>
+      <tr><td>firewall-cmd not found</td><td>Use sudo ufw instead — Ubuntu does not use firewall-cmd</td></tr>
+      <tr><td>n8n not starting</td><td>docker compose logs -f to read the error</td></tr>
+      <tr><td>Disk full</td><td>docker system prune -f then df -h</td></tr>
+      <tr><td>Webhooks show wrong URL</td><td>Update WEBHOOK_URL and N8N_HOST in docker-compose.yml, restart</td></tr>
+    </table>
+
+    <h3>Full system check (run anytime)</h3>
+    <div class="code-wrap">
+      <div class="code-top"><span class="lang-tag">bash</span><button class="copy-btn" onclick="cp(this)">copy</button></div>
+      <pre>docker ps                        <span class="cm"># containers running?</span>
+free -h                          <span class="cm"># memory ok?</span>
+df -h                            <span class="cm"># disk space?</span>
+sudo systemctl status nginx      <span class="cm"># nginx running?</span>
+sudo certbot certificates        <span class="cm"># SSL valid?</span>
+docker system df                 <span class="cm"># docker disk usage</span></pre>
+    </div>
+  </div>
+
+</main>
+</div>
+
+<script>
+function cp(btn) {
+  const text = btn.closest('.code-wrap').querySelector('pre').innerText;
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = 'copied ✓';
+    btn.classList.add('ok');
+    setTimeout(() => { btn.textContent = 'copy'; btn.classList.remove('ok'); }, 2000);
+  });
+}
+
+const sections = document.querySelectorAll('.section[id]');
+const links = document.querySelectorAll('.nav-item');
+const obs = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      links.forEach(l => l.classList.remove('active'));
+      const a = document.querySelector(`.nav-item[href="#${e.target.id}"]`);
+      if (a) a.classList.add('active');
+    }
+  });
+}, { rootMargin: '-25% 0px -65% 0px' });
+sections.forEach(s => obs.observe(s));
+</script>
+</body>
+</html>
